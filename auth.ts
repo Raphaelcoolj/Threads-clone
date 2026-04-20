@@ -98,14 +98,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.role = user.role;
-        token.onboarded = user.onboarded;
-        token.username = user.username;
-        token.picture = user.image;
+        // If it's a Google user, we need to fetch their MongoDB _id
+        await connectDB();
+        const dbUser = await User.findOne({ email: user.email });
+        
+        if (dbUser) {
+          token.sub = dbUser._id.toString();
+          token.role = dbUser.role;
+          token.onboarded = dbUser.onboarded;
+          token.username = dbUser.username;
+          token.picture = dbUser.image;
+        }
       }
 
       // 🔄 REAL-TIME SESSION UPDATE
-      // When we call update() on the client, we update the token here
       if (trigger === "update" && session?.user) {
         token.onboarded = session.user.onboarded;
         token.name = session.user.name;

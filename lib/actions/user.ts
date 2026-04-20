@@ -1,6 +1,6 @@
 "use server";
 
-import { FilterQuery, SortOrder } from "mongoose"
+import mongoose, { FilterQuery, SortOrder } from "mongoose"
 import { connectDB } from "../mongoose";
 import { User } from "../models/User";
 import { hash } from "bcryptjs";
@@ -154,7 +154,12 @@ export async function updateUser({
 export async function fetchUser(userId: string) {
   try {
     await connectDB();
-    return await User.findOne({ _id: userId }).lean();
+    
+    const query = mongoose.isValidObjectId(userId) 
+      ? { _id: userId } 
+      : { authProviderId: userId };
+
+    return await User.findOne(query).lean();
   } catch (error: any) {
     throw new Error(`Failed to fetch user: ${error.message}`);
   }
@@ -163,8 +168,13 @@ export async function fetchUser(userId: string) {
 export async function fetchUserPosts(userId: string) {
   try {
     await connectDB();
-    //find all threads authored by user with user id
-    const threads = await User.findOne({ _id: userId })
+    
+    const query = mongoose.isValidObjectId(userId) 
+      ? { _id: userId } 
+      : { authProviderId: userId };
+
+    //find all threads authored by user
+    const threads = await User.findOne(query)
       .populate({
         path: "threads",
         model: Thread,
