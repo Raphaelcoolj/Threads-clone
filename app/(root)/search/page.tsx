@@ -38,8 +38,8 @@ const page = async () => {
                 <>
                   {result.users.map((person) => (
                     <UserCard 
-                      key={person.id}
-                      id={person.id}
+                      key={person._id.toString()}
+                      id={person._id.toString()}
                       name={person.name}
                       username={person.username}
                       imgURL={person.image}

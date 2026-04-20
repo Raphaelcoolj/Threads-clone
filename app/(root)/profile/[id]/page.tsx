@@ -23,7 +23,7 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
   return (
     <section>
       <ProfileHeader
-        accountId={userInfo.id}
+        accountId={userInfo._id.toString()}
         authUserId={userId}
         name={userInfo.name}
         username={userInfo.username}
@@ -56,7 +56,7 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
             <TabsContent key={`content-${tab.label}`} value={tab.value} className='w-full text-light-1'>
               <ThreadsTab
               currentUserId={userId}
-              accountId={userInfo.id}
+              accountId={userInfo._id.toString()}
               accountType='User' 
               />
             </TabsContent>

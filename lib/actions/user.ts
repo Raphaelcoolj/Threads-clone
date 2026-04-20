@@ -159,7 +159,19 @@ export async function fetchUser(userId: string) {
       ? { _id: userId } 
       : { authProviderId: userId };
 
-    return await User.findOne(query).lean();
+    const user = await User.findOne(query)
+      .populate({
+        path: "threads",
+        model: Thread,
+        select: "_id", // Only need to verify existence
+      })
+      .lean();
+
+    if (user && user.threads) {
+      user.threads = user.threads.filter((thread: any) => thread !== null);
+    }
+
+    return user;
   } catch (error: any) {
     throw new Error(`Failed to fetch user: ${error.message}`);
   }
@@ -174,7 +186,7 @@ export async function fetchUserPosts(userId: string) {
       : { authProviderId: userId };
 
     //find all threads authored by user
-    const threads = await User.findOne(query)
+    const userWithPosts = await User.findOne(query)
       .populate({
         path: "threads",
         model: Thread,
@@ -190,7 +202,13 @@ export async function fetchUserPosts(userId: string) {
       })
       .lean();
 
-    return threads;
+    // Filter out threads that were deleted manually from the database 
+    // but are still referenced in the user's threads array.
+    if (userWithPosts && userWithPosts.threads) {
+      userWithPosts.threads = userWithPosts.threads.filter((thread: any) => thread !== null);
+    }
+
+    return userWithPosts;
   } catch (error: any) {
     throw new Error(`Failed to fetch posts: ${error.message}`);
   }
