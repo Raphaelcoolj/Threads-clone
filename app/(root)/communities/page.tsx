@@ -29,12 +29,12 @@ const page = async () => {
   return (
     <section>
         <h1 className="head-text mt-10">
-            Search
+            Communities
         </h1>
 
         <div className="mt-14 flex flex-col gap-9">
             {result.communities.length === 0 ? (
-                <p className="no-result">No users</p>
+                <p className="no-result">No communities yet</p>
             ):(
                 <>
                   {result.communities.map((community) => (
