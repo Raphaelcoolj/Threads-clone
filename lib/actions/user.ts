@@ -1,13 +1,15 @@
 "use server";
 
+import { FilterQuery, SortOrder } from "mongoose"
 import { connectDB } from "../mongoose";
-import { User } from "../User";
+import { User } from "../models/User";
 import { hash } from "bcryptjs";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { signIn } from "@/auth";
 import { AuthError } from "next-auth";
-import mongoose from "mongoose";
+;
+import Thread from "../models/threads.model";
 
 export async function signUp(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
@@ -152,13 +154,112 @@ export async function updateUser({
 export async function fetchUser(userId: string) {
   try {
     await connectDB();
-    return await User
-      .findOne({ _id: userId })
-      // .populate({
-      //   path: "communities",
-      //   model: "Community"
-      // });
+    return await User.findOne({ _id: userId }).lean();
   } catch (error: any) {
     throw new Error(`Failed to fetch user: ${error.message}`);
+  }
+}
+
+export async function fetchUserPosts(userId: string) {
+  try {
+    await connectDB();
+    //find all threads authored by user with user id
+    const threads = await User.findOne({ _id: userId })
+      .populate({
+        path: "threads",
+        model: Thread,
+        populate: {
+          path: "children",
+          model: Thread,
+          populate: {
+            path: "author",
+            model: User,
+            select: "name image _id",
+          },
+        },
+      })
+      .lean();
+
+    return threads;
+  } catch (error: any) {
+    throw new Error(`Failed to fetch posts: ${error.message}`);
+  }
+}
+
+
+export async function fetchUsers({
+  userId,
+  searchString = "",
+  pageNumber = 1,
+  pageSize = 20,
+  sortBy = "desc",
+}: {
+  userId: string;
+  searchString?: string;
+  pageNumber?: number;
+  pageSize?: number;
+  sortBy?: SortOrder;
+}) {
+  try {
+    await connectDB();
+
+    const skipAmount = (pageNumber - 1) * pageSize;
+    const regex = new RegExp(searchString, "i");
+
+    const query: FilterQuery<typeof User> = {
+      _id: { $ne: userId },
+    };
+
+    if (searchString.trim() !== "") {
+      query.$or = [
+        { username: { $regex: regex } },
+        { name: { $regex: regex } },
+      ];
+    }
+
+    const sortOptions ={ createdAt: sortBy};
+
+    const usersQuery = User.find(query)
+      .sort(sortOptions)
+      .skip(skipAmount)
+      .limit(pageSize)
+      .lean();
+
+    const totalUsersCount = await User.countDocuments(query);
+    const users = await usersQuery.exec();
+    const isNext = totalUsersCount > skipAmount + users.length;
+
+    return { users, isNext };
+
+  } catch (error: any) {
+    throw new Error(`Failed to fetch users: ${error.message}`);
+  }
+}
+
+export async function getActivity(userId: string){
+  try {
+    await connectDB();
+
+    //find all threads created by user
+    const userThreads = await Thread.find({ author: userId});
+
+    //collect all the child thread ids (replies) from 'children' field
+    const childThreadIds = userThreads.reduce((acc, userThread) => {
+      return acc.concat(userThread.children)
+    }, [])
+
+    const replies = await Thread.find({
+      _id: {$in: childThreadIds},
+      author: {$ne: userId}
+    }).populate({
+      path: 'author',
+      model: User,
+      select: 'name image _id'
+    }).lean();
+
+    return replies
+
+  } catch (error: any) {
+    throw new Error(`failed to get activities: ${error.message}`)
   }
 }

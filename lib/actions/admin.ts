@@ -1,7 +1,7 @@
 "use server"
 
 import { connectDB } from "@/lib/mongoose";
-import { User } from "@/lib/User";
+import { User } from "@/lib/models/User";
 import { revalidatePath } from "next/cache";
 import { hash } from "bcryptjs";
 

@@ -1,7 +1,7 @@
 import NextAuth, { CredentialsSignin, DefaultSession } from "next-auth"
 import Credentials from "next-auth/providers/credentials"; 
 import { connectDB } from "./lib/mongoose";
-import { User } from "./lib/User";
+import { User } from "./lib/models/User";
 import { compare, hash } from "bcryptjs";
 import { authConfig } from "./auth.config";
 

@@ -2,7 +2,6 @@ import React from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongoose";
-import { User } from "@/lib/User";
 import { fetchUser } from "@/lib/actions/user";
 import PostThread from "@/components/forms/PostThread";
 // If you create PostThread component later, you would import it here:

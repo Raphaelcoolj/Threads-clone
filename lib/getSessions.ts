@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { cache } from "react";
 import { connectDB } from "./mongoose";
-import { User } from "./User";
+import { User } from "./models/User";
 
 export const getSession = cache(async () => {
     const session = await auth();

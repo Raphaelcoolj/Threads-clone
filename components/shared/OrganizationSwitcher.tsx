@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { IconSelector, IconPlus, IconUserCircle } from "@tabler/icons-react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 const OrganizationSwitcher = () => {
   const { data: session } = useSession();
@@ -93,6 +94,7 @@ const OrganizationSwitcher = () => {
                 </div>
 
                 {/* Create Organization Button */}
+                <Link href={`/create-community`}>
                 <button 
                   className="w-full flex items-center gap-3 p-3 md:p-2 rounded-xl hover:bg-primary-500/10 text-zinc-400 hover:text-primary-500 transition-all text-left"
                   onClick={() => {
@@ -106,8 +108,10 @@ const OrganizationSwitcher = () => {
                   <div className="flex flex-col">
                     <span className="text-small-medium">Create Community</span>
                     <span className="text-[10px] text-zinc-600">Start a new group</span>
+                    
                   </div>
                 </button>
+              </Link>
             </div>
             
             {/* Logic for mapping through communities will be added here */}

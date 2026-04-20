@@ -9,7 +9,9 @@ import {Textarea } from "@/components/ui/textarea";
 import { useSession } from "next-auth/react";
 // import { updateUser } from "@/lib/actions/user";
 import { usePathname, useRouter } from "next/navigation";
-import { Input } from "../ui/input";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { createThread } from "@/lib/actions/thread.actions";
 
 interface Props {
   user: {
@@ -35,7 +37,15 @@ const PostThread = ({ userId }: { userId: string }) => {
     },
   });
 
-  const onSubmit = ()=> {
+  const onSubmit = async (values: z.infer<typeof ThreadValidation>) => {
+    await createThread({
+      text: values.thread,
+      author: userId,
+      communityId: null,
+      path: pathname,
+    });
+
+    router.push('/')
 
   }
 
@@ -43,16 +53,16 @@ const PostThread = ({ userId }: { userId: string }) => {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="fle flex-col justify-start gap-10"
+        className="mt-10 flex flex-col justify-start gap-10"
       > 
       <FormField
         control={form.control}
         name="thread"
         render={({ field }) => (
             <FormItem className="w-full flex flex-col gap-3">
-                <FormLabel className="text-light-2 text-base-semibold">Content</FormLabel>
+                <FormLabel className="text-base-semibold text-light-2">Content</FormLabel>
                 <FormControl className="no-focus border border-dark-4 bg-dark-3 text-light-1 ">
-                    <textarea
+                    <Textarea
                         rows={15}
                         
                         {...field}
@@ -61,6 +71,9 @@ const PostThread = ({ userId }: { userId: string }) => {
             </FormItem>
         )}
         />
+        <Button type="submit" className="bg-primary-500">
+          Post Thread
+        </Button>
       </form>
     </Form>
 );

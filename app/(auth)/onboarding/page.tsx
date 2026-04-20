@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import OnboardingForm from "@/components/forms/OnboardingForm";
-import { User } from "@/lib/User";
+import { User } from "@/lib/models/User";
 import { connectDB } from "@/lib/mongoose";
 
 export default async function OnboardingPage() {
