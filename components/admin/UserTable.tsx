@@ -62,7 +62,7 @@ export default function AdminUserTable({ initialUsers }: { initialUsers: UserLis
     setLoadingId(deletingUser.id);
     try {
       await deleteUser(deletingUser.id);
-      setUsers(users.filter(u => u._id !== deletingUser.id));
+      setUsers(users.filter(u => u._id.toString() !== deletingUser.id));
       setDeletingUser(null);
     } catch (error) {
       alert("Failed to delete user.");

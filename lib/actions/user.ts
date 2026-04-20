@@ -163,7 +163,11 @@ export async function fetchUser(userId: string) {
       .populate({
         path: "threads",
         model: Thread,
-        select: "_id", // Only need to verify existence
+        select: "_id", 
+      })
+      .populate({
+        path: "communities",
+        model: "Community",
       })
       .lean();
 
@@ -171,7 +175,7 @@ export async function fetchUser(userId: string) {
       user.threads = user.threads.filter((thread: any) => thread !== null);
     }
 
-    return user;
+    return JSON.parse(JSON.stringify(user));
   } catch (error: any) {
     throw new Error(`Failed to fetch user: ${error.message}`);
   }
@@ -190,15 +194,21 @@ export async function fetchUserPosts(userId: string) {
       .populate({
         path: "threads",
         model: Thread,
-        populate: {
-          path: "children",
-          model: Thread,
-          populate: {
-            path: "author",
-            model: User,
-            select: "name image _id",
+        populate: [
+          {
+            path: "children",
+            model: Thread,
+            populate: {
+              path: "author",
+              model: User,
+              select: "name image _id",
+            },
           },
-        },
+          {
+            path: "community",
+            model: "Community",
+          },
+        ],
       })
       .lean();
 

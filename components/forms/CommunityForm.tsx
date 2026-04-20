@@ -66,14 +66,15 @@ export default function CommunityForm({ userId }: Props) {
         }
       }
 
-      // We use the 'username' field as the unique 'id' (slug) for the community URL
+      // We create the community using name and username; MongoDB _id is generated automatically.
+      const memberUsernames = [values.member1, values.member2, values.member3].filter(Boolean) as string[];
       await createCommunity(
-        values.username, // This becomes the community 'id' (handle)
         values.name,
         values.username,
         profileImageUrl,
         values.bio,
-        userId
+        userId,
+        memberUsernames
       );
 
       router.push("/communities");
@@ -126,13 +127,13 @@ export default function CommunityForm({ userId }: Props) {
         </div>
 
         <div className="flex flex-col gap-3 w-full">
-           <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Community Handle (URL) <span className="text-primary-500">*</span></label>
+           <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Community Handle <span className="text-primary-500">*</span></label>
            <div className="relative">
                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-500 font-black opacity-40">@</span>
                <input 
                  {...form.register("username")}
                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 pl-9 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-                 placeholder="community_name"
+                 placeholder="community_handle"
                />
            </div>
            {form.formState.errors.username && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{form.formState.errors.username.message}</p>}
@@ -157,6 +158,15 @@ export default function CommunityForm({ userId }: Props) {
              placeholder="What is this community about?"
            />
            {form.formState.errors.bio && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{form.formState.errors.bio.message}</p>}
+        </div>
+
+        <div className="flex flex-col gap-3 w-full">
+           <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Add Members (Optional - up to 3)</label>
+           <div className="flex flex-col gap-2">
+              <input {...form.register("member1")} className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-white" placeholder="Username of member 1" />
+              <input {...form.register("member2")} className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-white" placeholder="Username of member 2" />
+              <input {...form.register("member3")} className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-white" placeholder="Username of member 3" />
+           </div>
         </div>
 
         <button 

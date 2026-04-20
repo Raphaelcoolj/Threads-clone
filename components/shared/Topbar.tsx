@@ -42,7 +42,7 @@ const Topbar = async () => {
                 </button>
               </form>
               
-              <OrganizationSwitcher />
+              <OrganizationSwitcher session={session} />
             </>
           )}
         </div>

@@ -10,11 +10,14 @@ const isPublicRoute = (pathname: string) =>
   pathname.startsWith("/login") || 
   pathname.startsWith("/sign-up") || // 🛡️ ENHANCED SYNC: Trust 'username' or 'name' as fallbacks.
   pathname.startsWith("/api/uploadthing") ||
-  pathname.startsWith("/api/auth");
+  pathname.startsWith("/api/auth") ;
+  // pathname.startsWith("/communities");
 
 export default auth((req) => {
   const { nextUrl } = req;
   const isAuthenticated = !!req.auth;
+
+  console.log(`[MIDDLEWARE] Checking path: ${req.nextUrl.pathname}, Auth: ${!!req.auth}`);
   
   // Only trust the explicit onboarded flag.
   const isFinishedOnboarding = req.auth?.user?.onboarded === true;

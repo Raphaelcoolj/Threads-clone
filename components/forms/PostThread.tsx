@@ -4,30 +4,17 @@ import { ThreadValidation } from "@/lib/validations/thread";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel} from "@/components/ui/form";
 import {Textarea } from "@/components/ui/textarea";
-import { useSession } from "next-auth/react";
-// import { updateUser } from "@/lib/actions/user";
 import { usePathname, useRouter } from "next/navigation";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { createThread } from "@/lib/actions/thread.actions";
-
-interface Props {
-  user: {
-    id: string;
-    name?: string | null;
-    username?: string | null;
-    image?: string | null;
-    bio?: string | null;
-  };
-}
-
+import { useOrganization } from "@/context/OrganizationContext";
 
 const PostThread = ({ userId }: { userId: string }) => {
-  const { update } = useSession();
   const pathname = usePathname();
   const router = useRouter();
+  const { activeCommunity } = useOrganization();
 
   const form = useForm({
     resolver: zodResolver(ThreadValidation),
@@ -41,7 +28,7 @@ const PostThread = ({ userId }: { userId: string }) => {
     await createThread({
       text: values.thread,
       author: userId,
-      communityId: null,
+      communityId: activeCommunity ? activeCommunity._id : null,
       path: pathname,
     });
 

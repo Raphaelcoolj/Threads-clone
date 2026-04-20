@@ -1,11 +1,14 @@
 "use client"
 
 import { SessionProvider } from "next-auth/react";
+import { OrganizationProvider } from "@/context/OrganizationContext";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      {children}
+      <OrganizationProvider>
+        {children}
+      </OrganizationProvider>
     </SessionProvider>
   );
 }

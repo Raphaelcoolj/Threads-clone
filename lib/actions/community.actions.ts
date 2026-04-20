@@ -1,6 +1,6 @@
 "use server";
 
-import { FilterQuery, SortOrder } from "mongoose";
+import mongoose, { SortOrder } from "mongoose";
 
 import Community from "../models/community";
 import Thread from '../models/threads.model';
@@ -9,37 +9,53 @@ import { User } from "../models/User";
 import { connectDB } from "../mongoose";
 
 export async function createCommunity(
-  id: string,
   name: string,
   username: string,
   image: string,
   bio: string,
-  createdById: string 
+  createdById: string,
+  memberUsernames?: string[]
 ) {
   try {
     await connectDB();
 
-    // Find the user with the provided unique id
     const user = await User.findById(createdById);
 
     if (!user) {
       throw new Error("User not found"); 
     }
 
+    const memberIds: any[] = [];
+    if (memberUsernames && memberUsernames.length > 0) {
+        for (const un of memberUsernames) {
+            const member = await User.findOne({ username: un.trim().toLowerCase() });
+            if (member && member._id.toString() !== user._id.toString()) {
+                memberIds.push(member._id);
+            }
+        }
+    }
+
     const newCommunity = new Community({
-      id,
       name,
       username,
       image,
       bio,
       createdBy: user._id, 
+      members: [user._id, ...memberIds]
     });
 
     const createdCommunity = await newCommunity.save();
 
-    // Update User model
     user.communities.push(createdCommunity._id);
     await user.save();
+
+    for (const memberId of memberIds) {
+        const member = await User.findById(memberId);
+        if (member) {
+            member.communities.push(createdCommunity._id);
+            await member.save();
+        }
+    }
 
     return JSON.parse(JSON.stringify(createdCommunity));
   } catch (error) {
@@ -52,7 +68,7 @@ export async function fetchCommunityDetails(id: string) {
   try {
     await connectDB();
 
-    const communityDetails = await Community.findOne({ id }).populate([
+    const communityDetails = await Community.findById(id).populate([
       "createdBy",
       {
         path: "members",
@@ -72,7 +88,7 @@ export async function fetchCommunityPosts(id: string) {
   try {
     await connectDB();
 
-    const communityPosts = await Community.findById(id).populate({
+    const communityPosts =  await Community.findById(id).populate({
       path: "threads",
       model: Thread,
       populate: [
@@ -117,7 +133,7 @@ export async function fetchCommunities({
     const skipAmount = (pageNumber - 1) * pageSize;
     const regex = new RegExp(searchString, "i");
 
-    const query: FilterQuery<typeof Community> = {};
+    const query: mongoose.FilterQuery<typeof Community> = {};
 
     if (searchString.trim() !== "") {
       query.$or = [
@@ -155,30 +171,25 @@ export async function addMemberToCommunity(
   try {
     await connectDB();
 
-    // Find the community by its unique id
-    const community = await Community.findOne({ id: communityId });
+    const community = await Community.findById(communityId);
 
     if (!community) {
       throw new Error("Community not found");
     }
 
-    // Find the user by their unique id
     const user = await User.findById(memberId);
 
     if (!user) {
       throw new Error("User not found");
     }
 
-    // Check if the user is already a member of the community
     if (community.members.includes(user._id)) {
       throw new Error("User is already a member of the community");
     }
 
-    // Add the user's _id to the members array in the community
     community.members.push(user._id);
     await community.save();
 
-    // Add the community's _id to the communities array in the user
     user.communities.push(community._id);
     await user.save();
 
@@ -196,30 +207,25 @@ export async function removeUserFromCommunity(
   try {
     await connectDB();
 
-    const userIdObject = await User.findById(userId, { _id: 1 });
-    const communityIdObject = await Community.findOne(
-      { id: communityId },
-      { _id: 1 }
-    );
+    const user = await User.findById(userId, { _id: 1 });
+    const community = await Community.findById(communityId, { _id: 1 });
 
-    if (!userIdObject) {
+    if (!user) {
       throw new Error("User not found");
     }
 
-    if (!communityIdObject) {
+    if (!community) {
       throw new Error("Community not found");
     }
 
-    // Remove the user's _id from the members array in the community
     await Community.updateOne(
-      { _id: communityIdObject._id },
-      { $pull: { members: userIdObject._id } }
+      { _id: community._id },
+      { $pull: { members: user._id } }
     );
 
-    // Remove the community's _id from the communities array in the user
     await User.updateOne(
-      { _id: userIdObject._id },
-      { $pull: { communities: communityIdObject._id } }
+      { _id: user._id },
+      { $pull: { communities: community._id } }
     );
 
     return { success: true };
@@ -238,8 +244,8 @@ export async function updateCommunityInfo(
   try {
     await connectDB();
 
-    const updatedCommunity = await Community.findOneAndUpdate(
-      { id: communityId },
+    const updatedCommunity = await Community.findByIdAndUpdate(
+      communityId,
       { name, username, image },
       { new: true }
     ).lean();
@@ -259,21 +265,16 @@ export async function deleteCommunity(communityId: string) {
   try {
     await connectDB();
 
-    const deletedCommunity = await Community.findOneAndDelete({
-      id: communityId,
-    });
+    const deletedCommunity = await Community.findByIdAndDelete(communityId);
 
     if (!deletedCommunity) {
       throw new Error("Community not found");
     }
 
-    // Delete all threads associated with the community
     await Thread.deleteMany({ community: communityId });
 
-    // Find all users who are part of the community
     const communityUsers = await User.find({ communities: deletedCommunity._id });
 
-    // Remove the community from the 'communities' array for each user
     const updateUserPromises = communityUsers.map((user) => {
       user.communities.pull(deletedCommunity._id);
       return user.save();

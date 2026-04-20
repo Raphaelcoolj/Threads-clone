@@ -23,12 +23,13 @@ const UserCard = ({
     personType
 }: Props) => {
     const router = useRouter();
+    const safeImg = (imgURL && imgURL.trim() !== "" && imgURL !== "assets/user.svg") ? imgURL : "/assets/user.svg";
   return (
     <article className="user-card">
         <div className="user-card_avatar">
             <Image 
-              src={imgURL || 'assets/user.svg'}
-              alt='logo'
+              src={safeImg}
+              alt={`${name}'s profile image`}
               width={48}
               height={48}
               className="rounded-full"

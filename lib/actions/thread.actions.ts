@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
 import Thread from "../models/threads.model";
 import { User } from "../models/User";
+import Community from "../models/community";
 import { connectDB } from "../mongoose";
 
 interface Params {
@@ -29,16 +30,26 @@ export async function createThread({
       if (user) userId = user._id.toString();
     }
 
+    // Resolve community _id directly from the passed communityId
+    let communityObjectId = communityId ? new mongoose.Types.ObjectId(communityId) : null;
+
     const createdThread = await Thread.create({
       text,
       author: userId,
-      communityId: null,
+      community: communityObjectId, // Use resolved _id
     });
 
     // Update User model
     await User.findByIdAndUpdate(userId, {
       $push: { threads: createdThread._id },
     });
+
+    if (communityObjectId) {
+      // Update Community model
+      await Community.findByIdAndUpdate(communityObjectId, {
+        $push: { threads: createdThread._id },
+      });
+    }
 
     revalidatePath(path);
   } catch (error: any) {
@@ -59,6 +70,10 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
       .skip(skipAmount)
       .limit(pageSize)
       .populate({ path: "author", model: User })
+      .populate({
+        path: "community",
+        model: Community,
+      })
       .populate({
         path: "children",
         populate: {
@@ -90,7 +105,7 @@ export async function fetchThreadById(threadId: string) {
       .populate({
         path: "author",
         model: User,
-        select: "_id id name image",
+        select: "_id name image",
       }) // Populate the author field with _id and username
       .populate({
         path: "children", // Populate the children field
@@ -98,7 +113,7 @@ export async function fetchThreadById(threadId: string) {
           {
             path: "author", // Populate the author field within children
             model: User,
-            select: "_id id name parentId image", // Select only _id and username fields of the author
+            select: "_id name parentId image", // Select only _id and username fields of the author
           },
           {
             path: "children", // Populate the children field within children
@@ -106,7 +121,7 @@ export async function fetchThreadById(threadId: string) {
             populate: {
               path: "author", // Populate the author field within nested children
               model: User,
-              select: "_id id name parentId image", // Select only _id and username fields of the author
+              select: "_id name parentId image", // Select only _id and username fields of the author
             },
           },
         ],
