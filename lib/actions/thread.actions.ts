@@ -1,5 +1,6 @@
 "use server";
 
+import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
 import Thread from "../models/threads.model";
 import { User } from "../models/User";
@@ -21,13 +22,21 @@ export async function createThread({
   try {
     await connectDB();
 
+    // Resolve the real MongoDB _id if a Google UUID was passed
+    let userId = author;
+    if (!mongoose.isValidObjectId(author)) {
+      const user = await User.findOne({ authProviderId: author });
+      if (user) userId = user._id.toString();
+    }
+
     const createdThread = await Thread.create({
       text,
-      author,
+      author: userId,
       communityId: null,
     });
-    //update user models
-    await User.findByIdAndUpdate(author, {
+
+    // Update User model
+    await User.findByIdAndUpdate(userId, {
       $push: { threads: createdThread._id },
     });
 
@@ -120,7 +129,13 @@ export async function addCommentToThread(
 ) {
   await connectDB();
   try {
-    //add comment
+    // Resolve the real MongoDB _id if a Google UUID was passed
+    let authorId = userId;
+    if (!mongoose.isValidObjectId(userId)) {
+      const user = await User.findOne({ authProviderId: userId });
+      if (user) authorId = user._id.toString();
+    }
+
     //find original thread by ID
     const originalThread = await Thread.findById(threadId);
     if (!originalThread) {
@@ -129,7 +144,7 @@ export async function addCommentToThread(
     //create new thread as a comment
     const commentThread = new Thread({
       text: commentText,
-      author: userId,
+      author: authorId,
       parentId: threadId,
     })
 
