@@ -45,7 +45,7 @@ export default function LoginForm() {
             Welcome Back
           </CardTitle>
           <CardDescription className="text-zinc-400 text-center lg:text-left text-sm">
-            Sign in to your account or use the test admin credentials.
+            Sign in to your account
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:gap-6">
