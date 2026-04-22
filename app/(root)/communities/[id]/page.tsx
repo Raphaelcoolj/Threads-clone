@@ -7,12 +7,13 @@ import ThreadsTab from "@/components/shared/ThreadsTab";
 import { redirect } from "next/navigation";
 import { fetchCommunityDetails } from "@/lib/actions/community.actions";
 import UserCard from "@/components/cards/UserCard";
+import JoinCommunityButton from "@/components/shared/JoinCommunityButton";
+import JoinRequests from "@/components/shared/JoinRequests";
 
 const page = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   if (!id) return null;
   const session = await auth();
-  console.log("[PAGE] Session check:", session);
   if (!session) redirect("/login");
   const userId = session?.user?.id;
 
@@ -20,6 +21,9 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
   if(!communityDetails){
     return <p className="text-light-2">Not Found</p>
   }
+
+  const isMember = communityDetails.members.some((member: any) => member._id.toString() === userId);
+  const isCreator = communityDetails.createdBy._id.toString() === userId;
 
   const safeCommunityImg = (communityDetails.image && communityDetails.image.trim() !== "") 
     ? communityDetails.image 
@@ -29,13 +33,23 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
     <section>
       <ProfileHeader
         accountId={communityDetails._id.toString()}
-        authUserId={communityDetails._id.toString()}
+        authUserId={userId || ""}
         name={communityDetails.name || "Community"}
         username={communityDetails.username || "unknown"}
         imgURL={safeCommunityImg}
         bio={communityDetails.bio || "No description provided."}
         type="Community"
+        isCreator={isCreator}
       />
+      
+      <div className="mt-4 px-7">
+        <JoinCommunityButton 
+          communityId={communityDetails._id.toString()}
+          userId={userId}
+          isMember={isMember}
+          type={communityDetails.type || 'public'}
+        />
+      </div>
 
       <div className="mt-9">
         <Tabs defaultValue="threads" className="w-full">
@@ -83,11 +97,15 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
           </TabsContent>
 
           <TabsContent value="requests" className="w-full text-light-1">
-            <ThreadsTab
-              currentUserId={userId}
-              accountId={communityDetails._id.toString()}
-              accountType="Community"
-            />
+            {isCreator ? (
+              <JoinRequests 
+                communityId={communityDetails._id.toString()}
+                creatorId={userId}
+                requests={communityDetails.requests || []}
+              />
+            ) : (
+              <p className="text-small-regular text-gray-1 mt-9">Only the creator can view requests.</p>
+            )}
           </TabsContent>
         </Tabs>
       </div>

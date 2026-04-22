@@ -1,4 +1,4 @@
-import { fetchUserPosts } from "@/lib/actions/user";
+import { fetchUserPosts, fetchUserComments } from "@/lib/actions/user";
 import { redirect } from "next/navigation";
 
 import React from "react";
@@ -9,53 +9,76 @@ interface Props {
   currentUserId: string;
   accountId: string;
   accountType: string;
+  tabValue?: string;
 }
 
-const ThreadsTab = async ({ currentUserId, accountId, accountType }: Props) => {
-  let result: any
+const ThreadsTab = async ({ currentUserId, accountId, accountType, tabValue }: Props) => {
+  let result: any;
 
-  if(accountType === "Community") {
+  if (accountType === "Community") {
     result = await fetchCommunityPosts(accountId);
   } else {
-    result = await fetchUserPosts(accountId);
+    if (tabValue === "replies") {
+      result = await fetchUserComments(accountId);
+    } else {
+      result = await fetchUserPosts(accountId);
+    }
   }
-
 
   if (!result) redirect("/");
 
+  // Sanitize the entire result object to plain JSON
+  const plainResult = JSON.parse(JSON.stringify(result));
+
   return (
     <section className="mt-9 flex flex-col gap-10">
-      {result.threads.map((thread: any) => {
+      {plainResult.threads.map((thread: any) => {
         if (!thread) return null;
 
+        const isRepost = accountType === "User" && tabValue !== "replies" && thread.author._id.toString() !== accountId;
+
         return (
-          <ThreadCard
-          key={thread._id.toString()}
-          id={thread._id.toString()}
-          currentUserId={currentUserId}
-          parentId={thread.parentId}
-          content={thread.text}
-          author={
-            accountType === "User"
-              ? { name: result.name, image: result.image, _id: result._id.toString() }
-              : {
-                  name: thread.author.name,
-                  image: thread.author.image,
-                  _id: thread.author._id.toString(),
-                }
-          }
-          community={
-            accountType === "Community"
-              ? {
-                  name: result.name,
-                  _id: result._id.toString(),
-                  image: result.image,
-                }
-              : thread.community
-          }
-          createdAt={thread.createdAt}
-          comments={thread.children}
-          />        );
+          <div key={thread._id.toString()} className="flex flex-col">
+            {isRepost && (
+              <p className="text-subtle-medium text-gray-1 mb-2 ml-2">
+                Reposted
+              </p>
+            )}
+            <ThreadCard
+              id={thread._id.toString()}
+              currentUserId={currentUserId}
+              parentId={thread.parentId}
+              content={thread.text}
+              author={
+                thread.author && typeof thread.author === 'object' 
+                  ? {
+                      name: thread.author.name,
+                      image: thread.author.image,
+                      _id: thread.author._id.toString(),
+                    }
+                  : {
+                      name: plainResult.name,
+                      image: plainResult.image,
+                      _id: plainResult._id.toString(),
+                    }
+              }
+              community={
+                accountType === "Community"
+                  ? {
+                      name: plainResult.name,
+                      _id: plainResult._id.toString(),
+                      image: plainResult.image,
+                    }
+                  : thread.community
+              }
+              createdAt={thread.createdAt}
+              comments={thread.children}
+              likes={thread.likes?.map((id: any) => id.toString()) || []}
+              reposts={thread.reposts?.map((id: any) => id.toString()) || []}
+              isComment={tabValue === "replies"}
+            />
+          </div>
+        );
       })}
     </section>
   );

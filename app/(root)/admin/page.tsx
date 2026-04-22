@@ -1,9 +1,12 @@
 import { getSession } from "@/lib/getSessions";
 import { redirect } from "next/navigation";
-import { fetchAllUsers } from "@/lib/actions/admin";
+import { fetchAllUsers, fetchAllThreads, fetchAllCommunities } from "@/lib/actions/admin";
 import AdminUserTable from "@/components/admin/UserTable";
 import CreateUserDialog from "@/components/admin/CreateUserDialog";
-import { IconUsers, IconShieldLock, IconDatabase } from "@tabler/icons-react";
+import { IconUsers, IconShieldLock, IconDatabase, IconMessage2, IconUsersGroup } from "@tabler/icons-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ThreadTable from "@/components/admin/ThreadTable";
+import CommunityTable from "@/components/admin/CommunityTable";
 
 export default async function AdminPage() {
   const data = await getSession();
@@ -14,6 +17,8 @@ export default async function AdminPage() {
   }
 
   const allUsers = await fetchAllUsers();
+  const allThreads = await fetchAllThreads();
+  const allCommunities = await fetchAllCommunities();
   const adminCount = allUsers.filter((u: any) => u.role === "admin").length;
 
   return (
@@ -37,53 +42,61 @@ export default async function AdminPage() {
       </header>
 
       {/* Glassmorphism Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         <div className="relative group p-6 rounded-2xl bg-dark-2 border border-zinc-800 transition-all duration-300 hover:border-primary-500/30 shadow-xl">
            <div className="absolute top-0 right-0 p-4 text-zinc-900 group-hover:text-primary-500/10 transition-colors">
               <IconUsers size={64} />
            </div>
            <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Total Users</p>
            <h3 className="text-4xl font-black text-white">{allUsers.length}</h3>
-           <div className="mt-4 flex items-center gap-2 text-[10px] text-green-500 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              Users are active
+        </div>
+
+        <div className="relative group p-6 rounded-2xl bg-dark-2 border border-zinc-800 transition-all duration-300 hover:border-primary-500/30 shadow-xl">
+           <div className="absolute top-0 right-0 p-4 text-zinc-900 group-hover:text-primary-500/10 transition-colors">
+              <IconMessage2 size={64} />
            </div>
+           <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Total Threads</p>
+           <h3 className="text-4xl font-black text-white">{allThreads.length}</h3>
+        </div>
+
+        <div className="relative group p-6 rounded-2xl bg-dark-2 border border-zinc-800 transition-all duration-300 hover:border-primary-500/30 shadow-xl">
+           <div className="absolute top-0 right-0 p-4 text-zinc-900 group-hover:text-primary-500/10 transition-colors">
+              <IconUsersGroup size={64} />
+           </div>
+           <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Communities</p>
+           <h3 className="text-4xl font-black text-white">{allCommunities.length}</h3>
         </div>
 
         <div className="relative group p-6 rounded-2xl bg-dark-2 border border-zinc-800 transition-all duration-300 hover:border-primary-500/30 shadow-xl">
            <div className="absolute top-0 right-0 p-4 text-zinc-900 group-hover:text-primary-500/10 transition-colors">
               <IconShieldLock size={64} />
            </div>
-           <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Total Admins</p>
+           <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Admins</p>
            <h3 className="text-4xl font-black text-white">{adminCount}</h3>
-           <div className="mt-4 text-[10px] text-zinc-500 font-medium">
-              Privileged access accounts
-           </div>
-        </div>
-
-        <div className="sm:col-span-2 lg:col-span-1 relative group p-6 rounded-2xl bg-dark-2 border border-zinc-800 transition-all duration-300 hover:border-primary-500/30 shadow-xl">
-           <div className="absolute top-0 right-0 p-4 text-zinc-900 group-hover:text-primary-500/10 transition-colors">
-              <IconDatabase size={64} />
-           </div>
-           <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Cloud Engine</p>
-           <h3 className="text-4xl font-black text-white">Online</h3>
-           <div className="mt-4 flex items-center gap-2 text-[10px] text-zinc-400 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
-              MongoDB Atlas Healthy
-           </div>
         </div>
       </div>
       
       {/* Main Content Area */}
-      <section className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-        <div className="flex items-center justify-between px-2">
-           <div className="space-y-1">
-              <h2 className="text-xl font-bold text-zinc-100">User Directory</h2>
-              <p className="text-xs text-zinc-500">Search and manage existing users in your system.</p>
-           </div>
-        </div>
-        
-        <AdminUserTable initialUsers={allUsers} />
+      <section className="space-y-6">
+        <Tabs defaultValue="users" className="w-full">
+          <TabsList className="bg-dark-2 border border-zinc-800 p-1 mb-6">
+            <TabsTrigger value="users" className="data-[state=active]:bg-zinc-800">Users</TabsTrigger>
+            <TabsTrigger value="threads" className="data-[state=active]:bg-zinc-800">Threads</TabsTrigger>
+            <TabsTrigger value="communities" className="data-[state=active]:bg-zinc-800">Communities</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="users">
+            <AdminUserTable initialUsers={allUsers} />
+          </TabsContent>
+
+          <TabsContent value="threads">
+            <ThreadTable threads={allThreads} />
+          </TabsContent>
+
+          <TabsContent value="communities">
+            <CommunityTable communities={allCommunities} />
+          </TabsContent>
+        </Tabs>
       </section>
       
       <footer className="mt-24 pt-8 border-t border-zinc-800/30 text-center text-zinc-600 text-[10px] uppercase tracking-[0.2em] font-medium">

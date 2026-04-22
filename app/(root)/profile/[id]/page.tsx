@@ -10,6 +10,7 @@ import Image from "next/image";
 import { profileTabs } from "@/constants";
 import ThreadsTab from "@/components/shared/ThreadsTab";
 
+
 const page = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   if (!id) return null;
@@ -20,15 +21,19 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
   const userInfo = await fetchUser(id);
   if (!userInfo?.onboarded) redirect("/onboarding");
 
+  // Sanitize the userInfo object before passing it to Client/Shared Components
+  const plainUserInfo = JSON.parse(JSON.stringify(userInfo));
+
   return (
     <section>
       <ProfileHeader
-        accountId={userInfo._id.toString()}
-        authUserId={userId}
-        name={userInfo.name}
-        username={userInfo.username}
-        imgURL={userInfo.image || "/assets/user.svg"}
-        bio={userInfo.bio}
+        accountId={plainUserInfo._id.toString()}
+        authUserId={userId || ""}
+        name={plainUserInfo.name}
+        username={plainUserInfo.username}
+        imgURL={plainUserInfo.image || "/assets/user.svg"}
+        bio={plainUserInfo.bio}
+        type="User"
       />
 
       <div className="mt-9">
@@ -46,7 +51,7 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
                 <p className="max-sm:hidden">{tab.label}</p>
                 {tab.label === "Threads" && (
                   <p className="ml-1 rounded-sm bg-light-4 px-2 py-1 !text-tiny-medium text-light-2">
-                    {userInfo?.threads?.length}
+                    {plainUserInfo?.threads?.length}
                   </p>
                 )}
               </TabsTrigger>
@@ -55,9 +60,10 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
           {profileTabs.map((tab) => (
             <TabsContent key={`content-${tab.label}`} value={tab.value} className='w-full text-light-1'>
               <ThreadsTab
-              currentUserId={userId}
-              accountId={userInfo._id.toString()}
+              currentUserId={userId || ""}
+              accountId={plainUserInfo._id.toString()}
               accountType='User' 
+              tabValue={tab.value}
               />
             </TabsContent>
           ))}

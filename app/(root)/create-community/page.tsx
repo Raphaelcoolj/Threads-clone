@@ -15,7 +15,7 @@ async function Page() {
     <>
       <h1 className="head-text">Create Community</h1>
 
-      <section className="mt-9 bg-dark-2 p-10">
+      <section className="mt-9 bg-dark-2 p-6 sm:p-10">
         <CommunityForm userId={userInfo._id.toString()} />
       </section>
     </>

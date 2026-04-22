@@ -189,38 +189,93 @@ export async function fetchUserPosts(userId: string) {
       ? { _id: userId } 
       : { authProviderId: userId };
 
-    //find all threads authored by user
-    const userWithPosts = await User.findOne(query)
-      .populate({
-        path: "threads",
-        model: Thread,
-        populate: [
-          {
-            path: "children",
-            model: Thread,
-            populate: {
-              path: "author",
-              model: User,
-              select: "name image _id",
-            },
-          },
-          {
-            path: "community",
-            model: "Community",
-          },
-        ],
-      })
-      .lean();
+    const user = await User.findOne(query);
+    const internalUserId = user._id;
 
-    // Filter out threads that were deleted manually from the database 
-    // but are still referenced in the user's threads array.
-    if (userWithPosts && userWithPosts.threads) {
-      userWithPosts.threads = userWithPosts.threads.filter((thread: any) => thread !== null);
-    }
+    //find all threads authored by user OR reposted by user
+    const threads = await Thread.find({
+      $or: [
+        { author: internalUserId },
+        { reposts: internalUserId }
+      ],
+      parentId: { $in: [null, undefined] } // only main threads, not comments
+    })
+    .populate({
+      path: "author",
+      model: User,
+      select: "name image _id",
+    })
+    .populate({
+      path: "community",
+      model: "Community",
+    })
+    .populate({
+      path: "children",
+      model: Thread,
+      populate: {
+        path: "author",
+        model: User,
+        select: "name image _id",
+      },
+    })
+    .sort({ createdAt: "desc" })
+    .lean();
 
-    return userWithPosts;
+    return { 
+      threads: JSON.parse(JSON.stringify(threads)),
+      name: user.name,
+      image: user.image,
+      _id: user._id
+    };
   } catch (error: any) {
     throw new Error(`Failed to fetch posts: ${error.message}`);
+  }
+}
+
+export async function fetchUserComments(userId: string) {
+  try {
+    await connectDB();
+
+    const query = mongoose.isValidObjectId(userId)
+      ? { _id: userId }
+      : { authProviderId: userId };
+
+    const user = await User.findOne(query);
+    const internalUserId = user._id;
+
+    const comments = await Thread.find({
+      author: internalUserId,
+      parentId: { $ne: null }
+    })
+    .populate({
+      path: "author",
+      model: User,
+      select: "name image _id",
+    })
+    .populate({
+      path: "community",
+      model: "Community",
+    })
+    .populate({
+      path: "children",
+      model: Thread,
+      populate: {
+        path: "author",
+        model: User,
+        select: "name image _id",
+      },
+    })
+    .sort({ createdAt: "desc" })
+    .lean();
+
+    return {
+      threads: JSON.parse(JSON.stringify(comments)),
+      name: user.name,
+      image: user.image,
+      _id: user._id
+    };
+  } catch (error: any) {
+    throw new Error(`Failed to fetch comments: ${error.message}`);
   }
 }
 

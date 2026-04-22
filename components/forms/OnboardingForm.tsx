@@ -15,8 +15,8 @@ import { usePathname, useRouter } from "next/navigation";
 // 🧩 Zod Schema matching Adrian's AccountProfile but with your optionality requirements
 const formSchema = z.object({
   profile_photo: z.string().optional().or(z.literal("")),
-  name: z.string().min(3).max(30),
-  username: z.string().min(3).max(30),
+  name: z.string().min(2, "Name must be at least 2 characters").max(30),
+  username: z.string().min(2, "Username must be at least 2 characters").max(30),
   bio: z.string().max(1000).optional().or(z.literal("")),
 });
 
@@ -55,7 +55,7 @@ export default function OnboardingForm({ user }: Props) {
     if (file) {
        if (!file.type.includes("image")) return;
 
-       setFiles(Array.from(e.target.files || []));
+       setFiles([file]);
 
        const reader = new FileReader();
        reader.onload = (event) => {
@@ -73,16 +73,16 @@ export default function OnboardingForm({ user }: Props) {
       console.log("1. Checking Image Upload...");
       let profileImageUrl = values.profile_photo;
       
-      // If it exists and is base64, we need to upload it
-      if (profileImageUrl && isBase64Image(profileImageUrl)) {
-        console.log("-> Uploading image to UploadThing");
+      // Only upload if a new file was selected (files array is not empty)
+      if (files.length > 0) {
+        console.log("-> Uploading new image to UploadThing...");
         const imgRes = await startUpload(files);
+        console.log("-> UploadThing Response:", imgRes);
 
         if (imgRes && imgRes.length > 0) {
-          // UploadThing V6 uses fileUrl, V7 uses url. We check both to be safe!
-          profileImageUrl = imgRes[0].url || (imgRes[0] as any).fileUrl;
+          profileImageUrl = imgRes[0].url || (imgRes[0] as any).fileUrl || (imgRes[0] as any).appUrl;
         } else {
-          throw new Error("Upload completed but no URL was returned. Please try again.");
+          throw new Error("The image was not uploaded correctly. Please try a different image or try again.");
         }
       }
 
@@ -159,6 +159,11 @@ export default function OnboardingForm({ user }: Props) {
           <div className="flex-1 space-y-1">
              <h3 className="text-white font-bold text-lg">Profile Picture</h3>
              <p className="text-zinc-500 text-xs uppercase font-black tracking-widest">Optional</p>
+             {form.formState.errors.profile_photo && (
+               <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">
+                 {form.formState.errors.profile_photo.message}
+               </p>
+             )}
           </div>
         </div>
 

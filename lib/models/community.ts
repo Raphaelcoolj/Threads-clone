@@ -28,6 +28,9 @@ const communitySchema = new mongoose.Schema({
       ref: "User",
     },
   ],
+  // Add privacy settings and join requests
+  type: { type: String, enum: ["public", "private"], default: "public" },
+  requests: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 });
 
 const Community =

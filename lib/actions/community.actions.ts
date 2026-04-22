@@ -14,7 +14,8 @@ export async function createCommunity(
   image: string,
   bio: string,
   createdById: string,
-  memberUsernames?: string[]
+  memberUsernames?: string[],
+  type?: string
 ) {
   try {
     await connectDB();
@@ -41,7 +42,8 @@ export async function createCommunity(
       image,
       bio,
       createdBy: user._id, 
-      members: [user._id, ...memberIds]
+      members: [user._id, ...memberIds],
+      type: type || 'public'
     });
 
     const createdCommunity = await newCommunity.save();
@@ -285,6 +287,62 @@ export async function deleteCommunity(communityId: string) {
     return JSON.parse(JSON.stringify(deletedCommunity));
   } catch (error) {
     console.error("Error deleting community: ", error);
+    throw error;
+  }
+}
+
+/**
+ * Handles a user's request to join a community.
+ * If public, adds member immediately. If private, adds to requests.
+ */
+export async function requestToJoinCommunity(
+  communityId: string,
+  userId: string
+) {
+  try {
+    await connectDB();
+    const community = await Community.findById(communityId);
+    if (!community) throw new Error("Community not found");
+
+    if (community.type === "public") {
+      return await addMemberToCommunity(communityId, userId);
+    } else {
+      await Community.findByIdAndUpdate(communityId, {
+        $addToSet: { requests: userId },
+      });
+      revalidatePath(`/communities/${communityId}`);
+    }
+  } catch (error) {
+    console.error("Error requesting to join community:", error);
+    throw error;
+  }
+}
+
+/**
+ * Accepts a user's request to join a private community.
+ */
+export async function acceptJoinRequest(
+  communityId: string,
+  userId: string,
+  creatorId: string
+) {
+  try {
+    await connectDB();
+    const community = await Community.findById(communityId);
+    if (!community) throw new Error("Community not found");
+    if (community.createdBy.toString() !== creatorId)
+      throw new Error("Unauthorized");
+
+    await Community.findByIdAndUpdate(communityId, {
+      $pull: { requests: userId },
+      $addToSet: { members: userId },
+    });
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { communities: communityId },
+    });
+    revalidatePath(`/communities/${communityId}`);
+  } catch (error) {
+    console.error("Error accepting join request:", error);
     throw error;
   }
 }

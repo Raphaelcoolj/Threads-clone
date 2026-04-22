@@ -14,9 +14,17 @@ import { CommunityValidation } from "@/lib/validations/community";
 
 interface Props {
   userId: string;
+  communityDetails?: {
+    id: string;
+    name: string;
+    username: string;
+    image: string;
+    bio: string;
+    type: string;
+  }
 }
 
-export default function CommunityForm({ userId }: Props) {
+export default function CommunityForm({ userId, communityDetails }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -26,10 +34,11 @@ export default function CommunityForm({ userId }: Props) {
   const form = useForm<z.infer<typeof CommunityValidation>>({
     resolver: zodResolver(CommunityValidation),
     defaultValues: {
-      profile_photo: "",
-      name: "",
-      username: "",
-      bio: "",
+      profile_photo: communityDetails?.image || "",
+      name: communityDetails?.name || "",
+      username: communityDetails?.username || "",
+      bio: communityDetails?.bio || "",
+      type: (communityDetails?.type as any) || "public",
     },
   });
 
@@ -39,7 +48,7 @@ export default function CommunityForm({ userId }: Props) {
     if (file) {
        if (!file.type.includes("image")) return;
 
-       setFiles(Array.from(e.target.files || []));
+       setFiles([file]);
 
        const reader = new FileReader();
        reader.onload = (event) => {
@@ -56,32 +65,45 @@ export default function CommunityForm({ userId }: Props) {
     try {
       let profileImageUrl = values.profile_photo;
       
-      if (profileImageUrl && isBase64Image(profileImageUrl)) {
+      if (files.length > 0) {
+        console.log("-> Uploading new community image...");
         const imgRes = await startUpload(files);
+        console.log("-> UT Response:", imgRes);
 
         if (imgRes && imgRes.length > 0) {
-          profileImageUrl = imgRes[0].url || (imgRes[0] as any).fileUrl;
+          profileImageUrl = imgRes[0].url || (imgRes[0] as any).fileUrl || (imgRes[0] as any).appUrl;
         } else {
-          throw new Error("Failed to upload community image.");
+          throw new Error("Failed to upload community image. Please try again.");
         }
       }
 
-      // We create the community using name and username; MongoDB _id is generated automatically.
-      const memberUsernames = [values.member1, values.member2, values.member3].filter(Boolean) as string[];
-      await createCommunity(
-        values.name,
-        values.username,
-        profileImageUrl,
-        values.bio,
-        userId,
-        memberUsernames
-      );
-
-      router.push("/communities");
+      if (communityDetails) {
+        // Update existing community
+        await updateCommunityInfo(
+          communityDetails.id,
+          values.name,
+          values.username,
+          profileImageUrl
+        );
+        router.push(`/communities/${communityDetails.id}`);
+      } else {
+        // Create new community
+        const memberUsernames = [values.member1, values.member2, values.member3].filter(Boolean) as string[];
+        await createCommunity(
+          values.name,
+          values.username,
+          profileImageUrl,
+          values.bio,
+          userId,
+          memberUsernames,
+          values.type
+        );
+        router.push("/communities");
+      }
 
     } catch (err: any) {
-      console.error("Community Creation Error:", err);
-      setError(err.message || "Failed to create community");
+      console.error("Community Operation Error:", err);
+      setError(err.message || "Failed to process community operation");
       setIsSubmitting(false);
     }
   };
@@ -122,8 +144,29 @@ export default function CommunityForm({ userId }: Props) {
           </div>
           <div className="flex-1 space-y-1">
              <h3 className="text-white font-bold text-lg">Community Logo</h3>
-             <p className="text-zinc-500 text-xs uppercase font-black tracking-widest">Required</p>
+             <p className="text-zinc-500 text-xs uppercase font-black tracking-widest">
+               {communityDetails ? "Optional to change" : "Required"}
+             </p>
+             {form.formState.errors.profile_photo && (
+               <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">
+                 {form.formState.errors.profile_photo.message}
+               </p>
+             )}
           </div>
+        </div>
+
+        <div className="flex flex-col gap-3 w-full">
+           <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Privacy</label>
+           <div className="flex gap-4">
+              <label className="flex items-center gap-2 text-white">
+                <input type="radio" {...form.register("type")} value="public" className="accent-primary-500" />
+                Public
+              </label>
+              <label className="flex items-center gap-2 text-white">
+                <input type="radio" {...form.register("type")} value="private" className="accent-primary-500" />
+                Private
+              </label>
+           </div>
         </div>
 
         <div className="flex flex-col gap-3 w-full">

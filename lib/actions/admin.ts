@@ -4,6 +4,10 @@ import { connectDB } from "@/lib/mongoose";
 import { User } from "@/lib/models/User";
 import { revalidatePath } from "next/cache";
 import { hash } from "bcryptjs";
+import Thread from "@/lib/models/threads.model";
+import Community from "@/lib/models/community";
+import { deleteThread } from "./thread.actions";
+import { deleteCommunity } from "./community.actions";
 
 /**
  * Fetches all users from the database.
@@ -99,5 +103,65 @@ export async function deleteUser(userId: string) {
   } catch (error) {
     console.error("Delete User Error:", error);
     throw new Error("Failed to delete user account.");
+  }
+}
+
+/**
+ * Fetches all threads.
+ */
+export async function fetchAllThreads() {
+  try {
+    await connectDB();
+    const threads = await Thread.find({})
+      .populate({ path: "author", model: User, select: "name username image _id" })
+      .populate({ path: "community", model: Community, select: "name _id" })
+      .sort({ createdAt: -1 });
+
+    return JSON.parse(JSON.stringify(threads));
+  } catch (error) {
+    console.error("Fetch Threads Error:", error);
+    throw new Error("Failed to retrieve threads.");
+  }
+}
+
+/**
+ * Admin action to delete a thread.
+ */
+export async function deleteThreadAdmin(threadId: string) {
+  try {
+    await deleteThread(threadId, "/admin");
+    return { success: true };
+  } catch (error: any) {
+    throw new Error(`Failed to delete thread: ${error.message}`);
+  }
+}
+
+/**
+ * Admin action to delete a community.
+ */
+export async function deleteCommunityAdmin(communityId: string) {
+  try {
+    await deleteCommunity(communityId);
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error: any) {
+    throw new Error(`Failed to delete community: ${error.message}`);
+  }
+}
+
+/**
+ * Fetches all communities.
+ */
+export async function fetchAllCommunities() {
+  try {
+    await connectDB();
+    const communities = await Community.find({})
+      .populate("createdBy", "name username")
+      .sort({ createdAt: -1 });
+
+    return JSON.parse(JSON.stringify(communities));
+  } catch (error) {
+    console.error("Fetch Communities Error:", error);
+    throw new Error("Failed to retrieve communities.");
   }
 }

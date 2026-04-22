@@ -31,6 +31,8 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
           community={thread.community}
           createdAt={thread.createdAt}
           comments={thread.children}
+          likes={thread.likes?.map((id: any) => id.toString()) || []}
+          reposts={thread.reposts?.map((id: any) => id.toString()) || []}
         />
       </div>
 
@@ -48,13 +50,15 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
           <ThreadCard
           key={childItem._id}
           id={childItem._id}
-          currentUserId={childItem || ""}
+          currentUserId={userId || ""}
           parentId={childItem.parentId}
           content={childItem.text}
           author={childItem.author}
           community={childItem.community}
           createdAt={childItem.createdAt}
           comments={childItem.children}
+          likes={childItem.likes?.map((id: any) => id.toString()) || []}
+          reposts={childItem.reposts?.map((id: any) => id.toString()) || []}
           isComment
         />
         ))}
